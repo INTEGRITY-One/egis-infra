@@ -1,72 +1,72 @@
 ## Sets up the SDN for the OCP cluster
 
 resource "aws_vpc" "ocp_vpc" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block 		= "10.0.0.0/16"
   
   tags = {
-    Name = "${var.name_org}-${var.name_application}-${var.environment_tag}-vpc"
+    Name 			= "${var.name_org}-${var.name_application}-${var.environment_tag}-vpc"
   }
 }
 
 resource "aws_internet_gateway" "public_gw" {
-  vpc_id = "${aws_vpc.ocp_vpc.id}"
+  vpc_id 			= "${aws_vpc.ocp_vpc.id}"
 
   tags = {
-    Name = "Internet Gateway for OCP VPC"
+    Name 			= "Internet Gateway for OCP VPC"
   }
 }
 
 resource "aws_subnet" "public_subnet1" {
-  vpc_id     = "${aws_vpc.ocp_vpc.id}"
-  cidr_block = "10.0.128.0/20"
+  vpc_id     		= "${aws_vpc.ocp_vpc.id}"
+  cidr_block 		= "10.0.128.0/20"
   availability_zone = "${var.aws_az1}"
 
   tags = {
-    Name = "Public subnet 1"
+    Name 			= "Public subnet 1"
   }
 }
 
 resource "aws_nat_gateway" "public_subnet1_gw" {
-  allocation_id = "${var.eipalloc_id1}" 
-  subnet_id     = "${aws_subnet.public_subnet1.id}"
+  allocation_id 	= "${var.eipalloc_id1}" 
+  subnet_id     	= "${aws_subnet.public_subnet1.id}"
 
   tags = {
-    Name = "NAT Gateway for Public Subnet 1"
+    Name 			= "NAT Gateway for Public Subnet 1"
   }
 }
 
 resource "aws_subnet" "public_subnet2" {
-  vpc_id     = "${aws_vpc.ocp_vpc.id}"
-  cidr_block = "10.0.144.0/20"
+  vpc_id     		= "${aws_vpc.ocp_vpc.id}"
+  cidr_block 		= "10.0.144.0/20"
   availability_zone = "${var.aws_az2}"
 
   tags = {
-    Name = "Public subnet 2"
+    Name 			= "Public subnet 2"
   }
 }
 
 resource "aws_nat_gateway" "public_subnet2_gw" {
-  allocation_id = "${var.eipalloc_id2}" 
-  subnet_id     = "${aws_subnet.public_subnet2.id}"
+  allocation_id 	= "${var.eipalloc_id2}" 
+  subnet_id     	= "${aws_subnet.public_subnet2.id}"
 
   tags = {
-    Name = "NAT Gateway for Public Subnet 2"
+    Name 			= "NAT Gateway for Public Subnet 2"
   }
 }
 
 resource "aws_subnet" "public_subnet3" {
-  vpc_id     = "${aws_vpc.ocp_vpc.id}"
-  cidr_block = "10.0.160.0/20"
+  vpc_id     		= "${aws_vpc.ocp_vpc.id}"
+  cidr_block 		= "10.0.160.0/20"
   availability_zone = "${var.aws_az3}"
 
   tags = {
-    Name = "Public subnet 3"
+    Name 			= "Public subnet 3"
   }
 }
 
 resource "aws_nat_gateway" "public_subnet3_gw" {
-  allocation_id = "${var.eipalloc_id3}" 
-  subnet_id     = "${aws_subnet.public_subnet3.id}"
+  allocation_id 	= "${var.eipalloc_id3}" 
+  subnet_id     	= "${aws_subnet.public_subnet3.id}"
 
   tags = {
     Name = "NAT Gateway for Public Subnet 3"
@@ -151,32 +151,32 @@ resource "aws_route_table_association" "public_subnet3_rt_assoc" {
 ## Configure Private subnets
 
 resource "aws_subnet" "private_subnet1" {
-  vpc_id     = "${aws_vpc.ocp_vpc.id}"
-  cidr_block = "10.0.0.0/19"
-  availability_zone = "${var.aws_az1}"
+  vpc_id     			= "${aws_vpc.ocp_vpc.id}"
+  cidr_block 			= "10.0.0.0/19"
+  availability_zone 	= "${var.aws_az1}"
 
   tags = {
-    Name = "Private subnet 1"
+    Name 				= "Private subnet 1"
   }
 }
 
 resource "aws_subnet" "private_subnet2" {
-  vpc_id     = "${aws_vpc.ocp_vpc.id}"
-  cidr_block = "10.0.32.0/19"
-  availability_zone = "${var.aws_az2}"
+  vpc_id     			= "${aws_vpc.ocp_vpc.id}"
+  cidr_block 			= "10.0.32.0/19"
+  availability_zone 	= "${var.aws_az2}"
 
   tags = {
-    Name = "Private subnet 2"
+    Name 				= "Private subnet 2"
   }
 }
 
 resource "aws_subnet" "private_subnet3" {
-  vpc_id     = "${aws_vpc.ocp_vpc.id}"
-  cidr_block = "10.0.64.0/19"
-  availability_zone = "${var.aws_az3}"
+  vpc_id     			= "${aws_vpc.ocp_vpc.id}"
+  cidr_block 			= "10.0.64.0/19"
+  availability_zone 	= "${var.aws_az3}"
 
   tags = {
-    Name = "Private subnet 3"
+    Name 				= "Private subnet 3"
   }
 }
 

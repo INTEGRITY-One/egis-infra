@@ -1,37 +1,13 @@
 #Profile to be used during the provisioning
 
-#VPC where the EC2 instance will be deployed
+#VPC where the EC2 instances will be deployed
 variable "vpc_id" {}
 
-#Subnet (AZ1) in the VPC
-variable "subnet_id1" {}
+#Subnet in the VPC where the bastion will go
+variable "subnet_id" {}
 
-#Subnet (AZ2) in the VPC
-variable "subnet_id2" {}
-
-#Subnet (AZ3) in the VPC
-variable "subnet_id3" {}
-
-#Default AMI to use for instances
-variable "ami_id" {
-  default = "ami-0664a710233d7c148" # Amazon Linux
-  #default = "ami-05e91c491f6eda1a3"
-}
-
-#hostname number incrementer
-variable "first_number" {
-  default = "001"
-}
-
-#hostname number incrementer
-variable "second_number" {
-  default = "001"
-}
-
-#hostname number incrementer
-variable "third_number" {
-  default = "001"
-}
+#AMI to use for the bastion server
+variable "bastion_ami_id" {}
 
 #DEFAULT EC2 instance type
 variable "instance_type" {

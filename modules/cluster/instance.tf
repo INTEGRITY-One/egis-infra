@@ -2,12 +2,10 @@
 
 ## Define cluster instances (cluster size controlled manually by first_number and second_number)
 
-resource "aws_instance" "app_1" {
+resource "aws_instance" "instance_1" {
 	
-    ami = "${var.ami_id}"
+    ami = "${var.node_ami_id}"
     instance_type = "${var.instance_type}"
-	# Only allow public access on 1
-	associate_public_ip_address = "true"
 
     subnet_id = "${var.subnet_id1}"
     key_name = "${var.key_name}"
@@ -46,9 +44,9 @@ data "template_file" "init1" {
   }
 }
 
-resource "aws_instance" "app_2" {
+resource "aws_instance" "instance_2" {
 	
-    ami = "${var.ami_id}"
+    ami = "${var.node_ami_id}"
     instance_type = "${var.instance_type}"
 
     subnet_id = "${var.subnet_id2}"
@@ -88,9 +86,9 @@ data "template_file" "init2" {
   }
 }
 
-resource "aws_instance" "app_3" {
+resource "aws_instance" "instance_3" {
 	
-    ami = "${var.ami_id}"
+    ami = "${var.node_ami_id}"
     instance_type = "${var.instance_type}"
 
     subnet_id = "${var.subnet_id3}"
@@ -131,7 +129,7 @@ data "template_file" "init3" {
 }
 
 ## Create ALB Target Group for this cluster
-resource "aws_lb_target_group" "app_tg" {
+resource "aws_lb_target_group" "instance_tg" {
     name = "${lower("leiss-${var.name_platform}-${var.environment_tag}")}"
     port = 8080
     protocol = "HTTP"
@@ -139,32 +137,32 @@ resource "aws_lb_target_group" "app_tg" {
 }
 
 ## Add new instance to ALB Target
-resource "aws_lb_target_group_attachment" "app_tg_attachment_1" {
-  target_group_arn = "${aws_lb_target_group.app_tg.arn}"
-  target_id        = "${aws_instance.app_1.id}"
+resource "aws_lb_target_group_attachment" "tg_attachment_1" {
+  target_group_arn = "${aws_lb_target_group.instance_tg.arn}"
+  target_id        = "${aws_instance.instance_1.id}"
   port             = 8080
 }
 
-resource "aws_lb_target_group_attachment" "app_tg_attachment_2" {
-  target_group_arn = "${aws_lb_target_group.app_tg.arn}"
-  target_id        = "${aws_instance.app_2.id}"
+resource "aws_lb_target_group_attachment" "tg_attachment_2" {
+  target_group_arn = "${aws_lb_target_group.instance_tg.arn}"
+  target_id        = "${aws_instance.instance_2.id}"
   port             = 8080
 }
 
-resource "aws_lb_target_group_attachment" "app_tg_attachment_3" {
-  target_group_arn = "${aws_lb_target_group.app_tg.arn}"
-  target_id        = "${aws_instance.app_3.id}"
+resource "aws_lb_target_group_attachment" "tg_attachment_3" {
+  target_group_arn = "${aws_lb_target_group.instance_tg.arn}"
+  target_id        = "${aws_instance.instance_3.id}"
   port             = 8080
 }
 
 ## Add new listener to ALB
-#resource "aws_lb_listener" "app_lb_listener" {
-#    load_balancer_arn = "${var.app_lb_arn}"
+#resource "aws_lb_listener" "instance_lb_listener" {
+#    load_balancer_arn = "${var.instance_lb_arn}"
 #    port = "8080"
 #    protocol = "HTTP"
 # 
 #    default_action {
-#        target_group_arn = "${aws_lb_target_group.app_tg.arn}"
+#        target_group_arn = "${aws_lb_target_group.instance_tg.arn}"
 #        type = "forward"
 #    }
 #}

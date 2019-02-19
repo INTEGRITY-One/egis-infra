@@ -25,3 +25,7 @@ output "public_subnet3"{
 output "public_subnets_sg"{
   value = "${aws_security_group.public_subnets_sg.id}"
 }
+
+output "private_subnets_sg"{
+  value = "${aws_security_group.private_subnets_sg.id}"
+}
