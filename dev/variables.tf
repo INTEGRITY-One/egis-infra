@@ -29,13 +29,13 @@ variable "aws_eip3" {
 
 #Default AMI to use for Node instances
 variable "node_ami_id" {
-   default = "ami-0664a710233d7c148" # Amazon Linux
-   #default = "ami-05e91c491f6eda1a3"
+   default = "ami-0b525576805d58c05" # Container Linux by CoreOS (in EU-West-2)
 }
 
 #Default AMI to use for the Bastion server
 variable "bastion_ami_id" {
-   default = "ami-0664a710233d7c148" # Amazon Linux
+   default = "ami-03d8532e1bdb0b940" # Custom Win2k19 AMI
+   #default = "ami-0664a710233d7c148" # Amazon Linux
    #default = "ami-055736f71d0590f3b" # Windows 2012
 }
 

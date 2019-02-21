@@ -73,51 +73,18 @@ resource "aws_nat_gateway" "public_subnet3_gw" {
   }
 }
 
-## Define the environment-specific security group
-
 resource "aws_security_group" "public_subnets_sg" {
-    name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-sg")}"
-    vpc_id = "${aws_vpc.ocp_vpc.id}"
+  name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-public-sg")}"
+  vpc_id = "${aws_vpc.ocp_vpc.id}"
 
-    ingress {
-        from_port   = "22"
-        to_port     = "22"
-        protocol    = "tcp"
-        cidr_blocks = ["10.0.0.0/8"]
-        description = "Allow SSH from all"
-    }
-    
-    ingress {
-        from_port   = "8080"
-        to_port     = "8080"
-        protocol    = "tcp"
-        cidr_blocks = ["${aws_subnet.public_subnet1.cidr_block}",
+  ingress {
+    cidr_blocks = ["${aws_subnet.public_subnet1.cidr_block}",
 					"${aws_subnet.public_subnet2.cidr_block}",
 					"${aws_subnet.public_subnet3.cidr_block}"]
-    }
-
-    ingress {
-        from_port   = "8443"
-        to_port     = "8443"
-        protocol    = "tcp"
-        cidr_blocks = ["${aws_subnet.public_subnet1.cidr_block}",
-					"${aws_subnet.public_subnet2.cidr_block}",
-					"${aws_subnet.public_subnet3.cidr_block}"]
-    }
-    
-    egress {
-        from_port   = 0
-        to_port     = 0
-        protocol    = "-1"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
-
-    tags {
-        name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-sg")}"
-        Application = "RedHat OCP"
-		ResourcePOC = "${var.resource_poc_tag}"
-        Environment = "${upper("${var.environment_tag}")}"
-    }
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+  }
 }
 
 resource "aws_route_table" "ocp_vpc_rt" {
@@ -180,15 +147,49 @@ resource "aws_subnet" "private_subnet3" {
   }
 }
 
-resource "aws_security_group" "private_subnets_sg" {
-  vpc_id = "${aws_vpc.ocp_vpc.id}"
+## Define the environment-specific security group
 
-  ingress {
-    cidr_blocks = ["${aws_subnet.private_subnet1.cidr_block}",
+resource "aws_security_group" "private_subnets_sg" {
+    name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-private-sg")}"
+    vpc_id = "${aws_vpc.ocp_vpc.id}"
+
+    ingress {
+        from_port   = "22"
+        to_port     = "22"
+        protocol    = "tcp"
+        cidr_blocks = ["10.0.0.0/8"]
+        description = "Allow SSH from all"
+    }
+    
+    ingress {
+        from_port   = "8080"
+        to_port     = "8080"
+        protocol    = "tcp"
+        cidr_blocks = ["${aws_subnet.private_subnet1.cidr_block}",
 					"${aws_subnet.private_subnet2.cidr_block}",
 					"${aws_subnet.private_subnet3.cidr_block}"]
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-  }
+    }
+
+    ingress {
+        from_port   = "8443"
+        to_port     = "8443"
+        protocol    = "tcp"
+        cidr_blocks = ["${aws_subnet.private_subnet1.cidr_block}",
+					"${aws_subnet.private_subnet2.cidr_block}",
+					"${aws_subnet.private_subnet3.cidr_block}"]
+    }
+    
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    tags {
+        name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-private-sg")}"
+        Application = "RedHat OCP"
+		ResourcePOC = "${var.resource_poc_tag}"
+        Environment = "${upper("${var.environment_tag}")}"
+    }
 }

@@ -10,7 +10,7 @@ resource "aws_instance" "bastion" {
 
     subnet_id = "${var.subnet_id}"
     key_name = "${var.key_name}"
-    vpc_security_group_ids = ["${var.custom_sg}"]
+    vpc_security_group_ids = ["${var.custom_sg}", "${var.bastion_sg}"]
 
     root_block_device {
         volume_size = "${var.OSDiskSize}"

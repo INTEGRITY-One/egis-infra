@@ -27,6 +27,9 @@ variable "DataDiskSize" {
 #Custom SG
 variable "custom_sg" {}
 
+#Bastion SG
+variable "bastion_sg" {}
+
 #Point of contact for the resources
 variable "resource_poc_tag" {}
 
