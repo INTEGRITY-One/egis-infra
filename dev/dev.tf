@@ -18,7 +18,8 @@ terraform {
 module "ocp-sdn" {
   source = "../modules/infra"
   
-  # Availability Zones (region-dependent)
+  # Region and Availability Zones
+  aws_region		= "${var.aws_region}"
   aws_az1 			= "${var.aws_az1}"
   aws_az2 			= "${var.aws_az2}"
   aws_az3 			= "${var.aws_az3}"
@@ -73,13 +74,39 @@ resource "aws_security_group" "bastion_sg" {
 
 ## Next, invoke the bastion creation module, overriding appropriate parameters
 
-module "bastion" {
+#module "bastion_win" {
+#  source = "../modules/bastion"
+  
+#  vpc_id 			= "${module.ocp-sdn.ocp_vpc}"
+#  subnet_id 		= "${module.ocp-sdn.public_subnet1}"
+  
+#  bastion_ami_id 	= "${var.bastion_win_ami_id}"
+  
+  # This SG allows the bastion to talk to the nodes
+#  custom_sg 		= "${module.ocp-sdn.private_subnets_sg}"
+#  bastion_sg		= "${aws_security_group.bastion_sg.id}"
+  
+#  name_org 			= "${var.name_org}"
+#  name_application 	= "${var.name_application}"
+#  name_platform 	= "${var.name_platform}"
+#  key_name 			= "${var.key_name}"
+#  environment_tag 	= "${var.environment_tag}"
+#  resource_poc_tag 	= "${var.resource_poc_tag}"
+
+#  instance_type 	= "t2.large"
+#  OSDiskSize 		= "200"
+#  DataDiskSize 		= "100"
+#}
+
+## Secondary Linux Bastion
+
+module "bastion_linux" {
   source = "../modules/bastion"
   
   vpc_id 			= "${module.ocp-sdn.ocp_vpc}"
   subnet_id 		= "${module.ocp-sdn.public_subnet1}"
   
-  bastion_ami_id 	= "${var.bastion_ami_id}"
+  bastion_ami_id 	= "${var.bastion_linux_ami_id}"
   
   # This SG allows the bastion to talk to the nodes
   custom_sg 		= "${module.ocp-sdn.private_subnets_sg}"
@@ -92,9 +119,9 @@ module "bastion" {
   environment_tag 	= "${var.environment_tag}"
   resource_poc_tag 	= "${var.resource_poc_tag}"
 
-  instance_type 	= "t2.large"
-  OSDiskSize 		= "200"
-  DataDiskSize 		= "100"
+  instance_type 	= "t2.medium"
+  OSDiskSize 		= "100"
+  DataDiskSize 		= "50"
 }
 
 ## Next, invoke the instance creation module, overriding appropriate parameters

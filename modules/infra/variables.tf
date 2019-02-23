@@ -1,6 +1,7 @@
 #These variables must be passed when the module is invoked
 
-#EIP Availability Zones (Region-dependent)
+#EIP Region and Availability Zones
+variable "aws_region" {}
 variable "aws_az1" {}
 variable "aws_az2" {}
 variable "aws_az3" {}

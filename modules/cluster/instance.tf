@@ -11,7 +11,7 @@ resource "aws_instance" "instance_1" {
     key_name = "${var.key_name}"
     vpc_security_group_ids = ["${var.custom_sg}"]
 
-    user_data = "${data.template_file.init1.rendered}" 
+    #user_data = "${data.template_file.init1.rendered}" 
 
     root_block_device {
         volume_size = "${var.OSDiskSize}"
@@ -33,16 +33,16 @@ resource "aws_instance" "instance_1" {
     }
 }
 
-data "template_file" "init1" {
-  template = <<-EOF
-              #!/bin/bash
-              hostnamectl set-hostname "$${hostname}"
-              EOF
-
-  vars {
-    hostname = "${var.name_org}${var.name_application}${var.environment_tag}${var.first_number}.ioneplabs.com"
-  }
-}
+#data "template_file" "init1" {
+#  template = <<-EOF
+#              #!/bin/bash
+#              hostnamectl set-hostname "$${hostname}"
+#              EOF
+#
+#  vars {
+#    hostname = "${var.name_org}${var.name_application}${var.environment_tag}${var.first_number}.ioneplabs.com"
+#  }
+#}
 
 resource "aws_instance" "instance_2" {
 	
@@ -53,7 +53,7 @@ resource "aws_instance" "instance_2" {
     key_name = "${var.key_name}"
     vpc_security_group_ids = ["${var.custom_sg}"]
 
-    user_data = "${data.template_file.init2.rendered}" 
+    #user_data = "${data.template_file.init2.rendered}" 
 
     root_block_device {
         volume_size = "${var.OSDiskSize}"
@@ -75,16 +75,16 @@ resource "aws_instance" "instance_2" {
     }
 }
 
-data "template_file" "init2" {
-  template = <<-EOF
-              #!/bin/bash
-              hostnamectl set-hostname "$${hostname}"
-              EOF
-
-  vars {
-    hostname = "${var.name_org}${var.name_application}${var.environment_tag}${var.second_number}.ioneplabs.com"
-  }
-}
+#data "template_file" "init2" {
+#  template = <<-EOF
+#              #!/bin/bash
+#              hostnamectl set-hostname "$${hostname}"
+#              EOF
+#
+#  vars {
+#    hostname = "${var.name_org}${var.name_application}${var.environment_tag}${var.second_number}.ioneplabs.com"
+#  }
+#}
 
 resource "aws_instance" "instance_3" {
 	
@@ -95,7 +95,7 @@ resource "aws_instance" "instance_3" {
     key_name = "${var.key_name}"
     vpc_security_group_ids = ["${var.custom_sg}"]
 
-    user_data = "${data.template_file.init3.rendered}" 
+    #user_data = "${data.template_file.init3.rendered}" 
 
     root_block_device {
         volume_size = "${var.OSDiskSize}"
@@ -117,16 +117,16 @@ resource "aws_instance" "instance_3" {
     }
 }
 
-data "template_file" "init3" {
-  template = <<-EOF
-              #!/bin/bash
-              hostnamectl set-hostname "$${hostname}"
-              EOF
-
-  vars {
-    hostname = "${var.name_org}${var.name_application}${var.environment_tag}${var.third_number}.ioneplabs.com"
-  }
-}
+#data "template_file" "init3" {
+#  template = <<-EOF
+#              #!/bin/bash
+#              hostnamectl set-hostname "$${hostname}"
+#              EOF
+#
+#  vars {
+#    hostname = "${var.name_org}${var.name_application}${var.environment_tag}${var.third_number}.ioneplabs.com"
+#  }
+#}
 
 ## Create ALB Target Group for this cluster
 resource "aws_lb_target_group" "instance_tg" {
