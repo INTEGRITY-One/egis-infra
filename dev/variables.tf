@@ -29,7 +29,10 @@ variable "aws_eip3" {
 
 #Default AMI to use for Node instances
 variable "node_ami_id" {
-   default = "ami-06292dcdd6a62ae68" # Custom CentOS (in EU-West-2)
+   #default = "ami-013fe22a07cad12e3" # Custom RHEL 7.5 [post-prereqs] (in EU-West-2)
+   default = "ami-0d10e52e97e077b5e" # Custom RHEL 7.5 [pre-prereqs] (in EU-West-2)
+   #default = "ami-7c1bfd1b" # RHEL 7.5 baseline (in EU-West-2)
+   #default = "ami-06292dcdd6a62ae68" # Custom CentOS (in EU-West-2)
    #default = "ami-0eab3a90fc693af19" # CentOS baseline (in EU-West-2)
 }
 
@@ -40,7 +43,8 @@ variable "bastion_win_ami_id" {
 
 #Default AMI to use for the Linux Bastion server
 variable "bastion_linux_ami_id" {
-   default = "ami-012b3fbe045483d63" # Custom Amazon Linux (in EU-West-2)
+   default = "ami-0fcb70ad37a326e70" # Custom Amazon Linux [pre-prereqs] (in EU-West-2)
+   #default = "ami-0664a710233d7c148" # Amazon Linux baseline (in EU-West-2)
 }
 
 #Point of contact for the resources

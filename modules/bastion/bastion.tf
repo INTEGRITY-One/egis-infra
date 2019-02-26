@@ -10,7 +10,7 @@ resource "aws_instance" "bastion" {
 
     subnet_id = "${var.subnet_id}"
     key_name = "${var.key_name}"
-    vpc_security_group_ids = ["${var.custom_sg}", "${var.bastion_sg}"]
+    vpc_security_group_ids = ["${var.bastion_sg}"]
 
     root_block_device {
         volume_size = "${var.OSDiskSize}"
@@ -26,7 +26,7 @@ resource "aws_instance" "bastion" {
 
     tags {
         Name        = "${var.name_org}${var.name_application}${var.environment_tag}000"
-        Application = "Windows Bastion"
+        Application = "OCP Bastion"
         ResourcePOC = "${var.resource_poc_tag}"
         Environment = "${upper("${var.environment_tag}")}"
     }

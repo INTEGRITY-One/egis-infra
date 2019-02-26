@@ -61,4 +61,5 @@ variable "name_org" {}
 variable "name_application" {}
 variable "name_platform" {}
 
-#variable "app_lb_arn" {}
+variable "cluster_lb_arn" {}
+variable "cluster_port" {}

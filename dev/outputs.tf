@@ -6,6 +6,9 @@
 output "bastion2_ip" {
   value = "${module.bastion_linux.bastion_ip}"
 }
+output "master_lb_dnsname" {
+  value = "${module.ocp-sdn.master_lb_dnsname}"
+}
     
 output "master1_ip" {
   value = "${module.master_cluster.instance1_ip}"

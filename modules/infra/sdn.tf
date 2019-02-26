@@ -85,20 +85,6 @@ resource "aws_nat_gateway" "public_subnet3_gw" {
   }
 }
 
-resource "aws_security_group" "public_subnets_sg" {
-  name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-public-sg")}"
-  vpc_id = "${aws_vpc.ocp_vpc.id}"
-
-  ingress {
-    cidr_blocks = ["${aws_subnet.public_subnet1.cidr_block}",
-					"${aws_subnet.public_subnet2.cidr_block}",
-					"${aws_subnet.public_subnet3.cidr_block}"]
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-  }
-}
-
 resource "aws_route_table" "ocp_vpc_rt" {
   vpc_id = "${aws_vpc.ocp_vpc.id}"
 
@@ -159,45 +145,6 @@ resource "aws_subnet" "private_subnet3" {
   }
 }
 
-## Define the environment-specific security group
-
-resource "aws_security_group" "private_subnets_sg" {
-    name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-private-sg")}"
-    vpc_id = "${aws_vpc.ocp_vpc.id}"
-
-    ingress {
-        from_port   = "0"
-        to_port     = "65535"
-        protocol    = "tcp"
-        cidr_blocks = ["${aws_subnet.private_subnet1.cidr_block}",
-					"${aws_subnet.private_subnet2.cidr_block}",
-					"${aws_subnet.private_subnet3.cidr_block}"]
-        description = "Allow unrestricted internal traffic"
-    }
-    
-    ingress {
-        from_port   = "8" # Echo Request (Ping)
-        to_port     = "-1" # N/A
-        protocol    = "icmp"
-        cidr_blocks = ["0.0.0.0/0"]
-        description = "Allow Ping from all"
-    }
-    
-    egress {
-        from_port   = 0
-        to_port     = 0
-        protocol    = "-1"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
-
-    tags {
-        name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-private-sg")}"
-        Application = "RedHat OCP"
-		ResourcePOC = "${var.resource_poc_tag}"
-        Environment = "${upper("${var.environment_tag}")}"
-    }
-}
-
 resource "aws_route_table" "ocp_private1_rt" {
   vpc_id = "${aws_vpc.ocp_vpc.id}"
 
@@ -250,4 +197,36 @@ resource "aws_route_table" "ocp_private3_rt" {
 resource "aws_route_table_association" "private_subnet3_rt_assoc" {
   subnet_id      = "${aws_subnet.private_subnet3.id}"
   route_table_id = "${aws_route_table.ocp_private3_rt.id}"
+}
+
+resource "aws_lb" "master_lb" {
+  name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-lb")}"
+  internal           = false
+  load_balancer_type = "network"
+  subnets            = ["${aws_subnet.public_subnet1.id}",
+					"${aws_subnet.public_subnet2.id}",
+					"${aws_subnet.public_subnet3.id}"]
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-lb")}"
+    Environment = "${upper("${var.environment_tag}")}"
+  }
+}
+
+resource "aws_lb" "node_lb" {
+  name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-lb")}"
+  internal           = true
+  load_balancer_type = "network"
+  subnets            = ["${aws_subnet.private_subnet1.id}",
+					"${aws_subnet.private_subnet2.id}",
+					"${aws_subnet.private_subnet3.id}"]
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-lb")}"
+    Environment = "${upper("${var.environment_tag}")}"
+  }
 }

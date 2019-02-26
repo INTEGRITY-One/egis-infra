@@ -24,9 +24,6 @@ variable "DataDiskSize" {
   default = "50"
 }
 
-#Custom SG
-variable "custom_sg" {}
-
 #Bastion SG
 variable "bastion_sg" {}
 

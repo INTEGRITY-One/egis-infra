@@ -27,7 +27,7 @@ resource "aws_instance" "instance_1" {
 
     tags {
         Name        = "${var.name_org}${var.name_application}${var.environment_tag}${var.first_number}"
-        Application = "RedHat OCD"
+        Application = "RedHat OCP"
         ResourcePOC = "${var.resource_poc_tag}"
         Environment = "${upper("${var.environment_tag}")}"
     }
@@ -69,7 +69,7 @@ resource "aws_instance" "instance_2" {
 
     tags {
         Name        = "${var.name_org}${var.name_application}${var.environment_tag}${var.second_number}"
-        Application = "RedHat OCD"
+        Application = "RedHat OCP"
         ResourcePOC = "${var.resource_poc_tag}"
         Environment = "${upper("${var.environment_tag}")}"
     }
@@ -111,7 +111,7 @@ resource "aws_instance" "instance_3" {
 
     tags {
         Name        = "${var.name_org}${var.name_application}${var.environment_tag}${var.third_number}"
-        Application = "RedHat OCD"
+        Application = "RedHat OCP"
         ResourcePOC = "${var.resource_poc_tag}"
         Environment = "${upper("${var.environment_tag}")}"
     }
@@ -128,41 +128,126 @@ resource "aws_instance" "instance_3" {
 #  }
 #}
 
-## Create ALB Target Group for this cluster
-resource "aws_lb_target_group" "instance_tg" {
-    name = "${lower("leiss-${var.name_platform}-${var.environment_tag}")}"
-    port = 8080
-    protocol = "HTTP"
+## Create Custom LB Target Group for this cluster
+resource "aws_lb_target_group" "instance_custom_tg" {
+    name_prefix = "${var.name_application}-"
+    port = "${var.cluster_port}"
+    protocol = "TCP"
     vpc_id = "${var.vpc_id}"
+    stickiness {
+    	type = "lb_cookie"
+    	enabled = "false"
+    }
 }
 
-## Add new instance to ALB Target
-resource "aws_lb_target_group_attachment" "tg_attachment_1" {
-  target_group_arn = "${aws_lb_target_group.instance_tg.arn}"
+# Standard HTTP/HTTPS target groups
+resource "aws_lb_target_group" "instance_http_tg" {
+    name_prefix = "${var.name_application}-"
+    port = "80"
+    protocol = "TCP"
+    vpc_id = "${var.vpc_id}"
+    stickiness {
+    	type = "lb_cookie"
+    	enabled = "false"
+    }
+}
+
+resource "aws_lb_target_group" "instance_https_tg" {
+    name_prefix = "${var.name_application}-"
+    port = "443"
+    protocol = "TCP"
+    vpc_id = "${var.vpc_id}"
+    stickiness {
+    	type = "lb_cookie"
+    	enabled = "false"
+    }
+}
+
+## Add new instance to LB Target
+resource "aws_lb_target_group_attachment" "tg_custom_attachment_1" {
+  target_group_arn = "${aws_lb_target_group.instance_custom_tg.arn}"
   target_id        = "${aws_instance.instance_1.id}"
-  port             = 8080
+  port             = "${var.cluster_port}"
 }
 
-resource "aws_lb_target_group_attachment" "tg_attachment_2" {
-  target_group_arn = "${aws_lb_target_group.instance_tg.arn}"
+resource "aws_lb_target_group_attachment" "tg_custom_attachment_2" {
+  target_group_arn = "${aws_lb_target_group.instance_custom_tg.arn}"
   target_id        = "${aws_instance.instance_2.id}"
-  port             = 8080
+  port             = "${var.cluster_port}"
 }
 
-resource "aws_lb_target_group_attachment" "tg_attachment_3" {
-  target_group_arn = "${aws_lb_target_group.instance_tg.arn}"
+resource "aws_lb_target_group_attachment" "tg_custom_attachment_3" {
+  target_group_arn = "${aws_lb_target_group.instance_custom_tg.arn}"
   target_id        = "${aws_instance.instance_3.id}"
-  port             = 8080
+  port             = "${var.cluster_port}"
 }
 
-## Add new listener to ALB
-#resource "aws_lb_listener" "instance_lb_listener" {
-#    load_balancer_arn = "${var.instance_lb_arn}"
-#    port = "8080"
-#    protocol = "HTTP"
-# 
-#    default_action {
-#        target_group_arn = "${aws_lb_target_group.instance_tg.arn}"
-#        type = "forward"
-#    }
-#}
+resource "aws_lb_target_group_attachment" "tg_http_attachment_1" {
+  target_group_arn = "${aws_lb_target_group.instance_http_tg.arn}"
+  target_id        = "${aws_instance.instance_1.id}"
+  port             = "80"
+}
+
+resource "aws_lb_target_group_attachment" "tg_http_attachment_2" {
+  target_group_arn = "${aws_lb_target_group.instance_http_tg.arn}"
+  target_id        = "${aws_instance.instance_2.id}"
+  port             = "80"
+}
+
+resource "aws_lb_target_group_attachment" "tg_http_attachment_3" {
+  target_group_arn = "${aws_lb_target_group.instance_http_tg.arn}"
+  target_id        = "${aws_instance.instance_3.id}"
+  port             = "80"
+}
+
+resource "aws_lb_target_group_attachment" "tg_https_attachment_1" {
+  target_group_arn = "${aws_lb_target_group.instance_https_tg.arn}"
+  target_id        = "${aws_instance.instance_1.id}"
+  port             = "443"
+}
+
+resource "aws_lb_target_group_attachment" "tg_https_attachment_2" {
+  target_group_arn = "${aws_lb_target_group.instance_https_tg.arn}"
+  target_id        = "${aws_instance.instance_2.id}"
+  port             = "443"
+}
+
+resource "aws_lb_target_group_attachment" "tg_https_attachment_3" {
+  target_group_arn = "${aws_lb_target_group.instance_https_tg.arn}"
+  target_id        = "${aws_instance.instance_3.id}"
+  port             = "443"
+}
+
+## Add new listeners to LB
+resource "aws_lb_listener" "cluster_custom_lb_listener" {
+    load_balancer_arn = "${var.cluster_lb_arn}"
+    port = "${var.cluster_port}"
+    protocol = "TCP"
+ 
+    default_action {
+        target_group_arn = "${aws_lb_target_group.instance_custom_tg.arn}"
+        type = "forward"
+    }
+}
+
+resource "aws_lb_listener" "cluster_http_lb_listener" {
+    load_balancer_arn = "${var.cluster_lb_arn}"
+    port = "80"
+    protocol = "TCP"
+ 
+    default_action {
+        target_group_arn = "${aws_lb_target_group.instance_http_tg.arn}"
+        type = "forward"
+    }
+}
+
+resource "aws_lb_listener" "cluster_https_lb_listener" {
+    load_balancer_arn = "${var.cluster_lb_arn}"
+    port = "443"
+    protocol = "TCP"
+ 
+    default_action {
+        target_group_arn = "${aws_lb_target_group.instance_https_tg.arn}"
+        type = "forward"
+    }
+}
