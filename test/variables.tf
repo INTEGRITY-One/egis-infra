@@ -54,13 +54,16 @@ variable "aws_eip3" {
 
 #Default AMI to use for Node instances
 variable "node_ami_id" {
-   #default = "ami-0b500ef59d8335eee" # RHEL 7.6 baseline (in US-East-2)
-   default = "ami-0ec827f0337bb4999" # Custom RHEL 7.6 [pre-Prereqs]
+   default = "ami-0b500ef59d8335eee" # RHEL 7.6 baseline (in US-East-2)
+   #default = "ami-0376bbf9be9eac670" # RHEL 7.5 baseline?
+   #default = "ami-06e231e471a121b03" # Custom RHEL 7.5 [pre-Prereqs]
+   #default = "ami-0ec827f0337bb4999" # Custom RHEL 7.6 [pre-Prereqs]
 }
 
 #Default AMI to use for the Windows Bastion server
 variable "bastion_win_ami_id" {
-   default = "ami-0eb1e0a0c9f3f85c7" # Win2k19 baseline (in US-East-2)
+   #default = "ami-0eb1e0a0c9f3f85c7" # Win2k19 baseline (in US-East-2)
+   default = "ami-0cba06d56e638e353" # Custom Win2k12 bastion (in US-East-2)
 }
 
 #Default AMI to use for the Linux Bastion server
@@ -97,4 +100,29 @@ variable "name_application" {
 #Platform name - used for dynamic name generation, e.g. hostname
 variable "name_platform" {
    default = "ocp"
+}
+
+#To use pre-existing ALB for masters
+#variable "master_lb_arn" {
+#   default = "arn:aws:elasticloadbalancing:us-east-2:766884914534:loadbalancer/app/iop-egis-tst-master-lb/34916321bf77d84d"
+#}
+variable "master_lb_cert_arn" {
+   default = "arn:aws:acm:us-east-2:766884914534:certificate/6c6dce9d-0d88-4188-a2db-b4a90138014d"
+}
+variable "hosted_zone_id" {
+   default = "Z22VD5RMXGU8FG"
+}
+variable "domain_name" {
+   default = "ioneplab.com"
+}
+
+#RedHat info
+variable "redhat_username" {
+	default = "ed.hollingsworth@ionep.com"
+}
+variable "redhat_password" {
+	default = "\\$!thL0rd"
+}
+variable "redhat_pool_id" {
+	default = "8a85f99968b92c3701694aa9b66619a6"
 }

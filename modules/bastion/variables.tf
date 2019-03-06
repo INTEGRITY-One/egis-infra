@@ -39,5 +39,8 @@ variable "key_name" {}
 variable "name_org" {}
 variable "name_application" {}
 variable "name_platform" {}
+variable "bastion_number" {
+  default = "000"
+}
 
 #variable "app_lb_arn" {}

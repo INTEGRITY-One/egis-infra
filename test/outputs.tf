@@ -1,14 +1,14 @@
 ## Final outputs of process
 
-#output "bastion_ip" {
-#  value = "${module.bastion_win.bastion_ip}"
+output "bastion_ip_win" {
+  value = "${module.bastion_win.bastion_ip}"
+}
+#output "bastion_ip_linux" {
+#  value = "${module.bastion_linux.bastion_ip}"
 #}
-output "bastion2_ip" {
-  value = "${module.bastion_linux.bastion_ip}"
-}
-output "master_lb_dnsname" {
-  value = "${aws_lb.master_lb.dns_name}"
-}
+#output "master_lb_dnsname" {
+#  value = "${aws_lb.master_lb.dns_name}"
+#}
     
 output "master1_ip" {
   value = "${module.master_cluster.instance1_ip}"

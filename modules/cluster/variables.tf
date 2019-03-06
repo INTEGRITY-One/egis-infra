@@ -63,3 +63,19 @@ variable "name_platform" {}
 
 variable "cluster_lb_arn" {}
 variable "cluster_port" {}
+variable "domain_name" {}
+
+#Cert to use for SSL
+variable "cluster_lb_cert_arn" {
+  default = "arn:aws:acm:us-east-2:766884914534:certificate/6c6dce9d-0d88-4188-a2db-b4a90138014d"
+}
+
+#LB info
+variable "lb_dns_name" {}
+variable "lb_hosted_zone_id" {}
+variable "lb_cluster_zone_id" {}
+
+#RedHat info
+variable "redhat_username" {}
+variable "redhat_password" {}
+variable "redhat_pool_id" {}

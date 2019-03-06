@@ -37,10 +37,56 @@ terraform {
 
 ## Instead of creating the entire SDN, we create just the LBs here:
 
+## Define the Custom SG for the Master LB
+
+resource "aws_security_group" "master_lb_sg" {
+    name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-lb-sg")}"
+    vpc_id = "${var.ocp_vpc}"
+
+    ingress {
+        from_port   = "80"
+        to_port     = "80"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "Allow HTTP from external"
+    }
+    
+    ingress {
+        from_port   = "443"
+        to_port     = "443"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "Allow HTTPS from external"
+    }
+    
+    ingress {
+        from_port   = "8443"
+        to_port     = "8443"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "Allow HTTPS (admin) from external"
+    }
+    
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    tags {
+        name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-lb-sg")}"
+        Application = "SG for Public-facing Load Balancer"
+		ResourcePOC = "${var.resource_poc_tag}"
+        Environment = "${upper("${var.environment_tag}")}"
+    }
+}
+
 resource "aws_lb" "master_lb" {
-  name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-lb")}"
+  name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-alb")}"
   internal           = false
-  load_balancer_type = "network"
+  load_balancer_type = "application"
+  security_groups    = ["${aws_security_group.master_lb_sg.id}"]
   subnets            = ["${var.public_subnet1}",
 					"${var.public_subnet2}",
 					"${var.public_subnet3}"]
@@ -48,15 +94,28 @@ resource "aws_lb" "master_lb" {
   enable_deletion_protection = false
 
   tags = {
-    Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-lb")}"
+    Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-alb")}"
     Environment = "${upper("${var.environment_tag}")}"
+    "kubernetes.io/cluster/openshift" = "owned"
+  }
+}
+
+resource "aws_route53_record" "master-alias" {
+  zone_id = "${var.hosted_zone_id}"
+  name    = "${var.name_application}-demo.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = "${aws_lb.master_lb.dns_name}"
+    zone_id                = "${aws_lb.master_lb.zone_id}"
+    evaluate_target_health = true
   }
 }
 
 resource "aws_lb" "node_lb" {
-  name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-lb")}"
+  name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-alb")}"
   internal           = true
-  load_balancer_type = "network"
+  load_balancer_type = "application"
   subnets            = ["${var.private_subnet1}",
 					"${var.private_subnet2}",
 					"${var.private_subnet3}"]
@@ -64,8 +123,9 @@ resource "aws_lb" "node_lb" {
   enable_deletion_protection = false
 
   tags = {
-    Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-lb")}"
+    Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-alb")}"
     Environment = "${upper("${var.environment_tag}")}"
+    "kubernetes.io/cluster/openshift" = "owned"
   }
 }
 
@@ -83,13 +143,21 @@ resource "aws_security_group" "bastion_sg" {
         description = "Allow SSH from external"
     }
     
-    #ingress {
-    #    from_port   = "3389"
-    #    to_port     = "3389"
-    #    protocol    = "tcp"
-    #    cidr_blocks = ["0.0.0.0/0"]
-    #    description = "Allow RDC from external"
-    #}
+    ingress {
+        from_port   = "3389"
+        to_port     = "3389"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "Allow RDC from external"
+    }
+    
+    ingress {
+        from_port   = "0"
+        to_port     = "65535"
+        protocol    = "tcp"
+        self		= "true"
+        description = "Allow unrestricted internal traffic"
+    }
     
     egress {
         from_port   = 0
@@ -108,39 +176,13 @@ resource "aws_security_group" "bastion_sg" {
 
 ## Next, invoke the bastion creation module, overriding appropriate parameters
 
-#module "bastion_win" {
-#  source = "../modules/bastion"
-  
-#  vpc_id 			= "${module.ocp-sdn.ocp_vpc}"
-#  subnet_id 		= "${module.ocp-sdn.public_subnet1}"
-  
-#  bastion_ami_id 	= "${var.bastion_win_ami_id}"
-  
-  # This SG allows the bastion to talk to the nodes
-#  custom_sg 		= "${module.ocp-sdn.private_subnets_sg}"
-#  bastion_sg		= "${aws_security_group.bastion_sg.id}"
-  
-#  name_org 			= "${var.name_org}"
-#  name_application 	= "${var.name_application}"
-#  name_platform 	= "${var.name_platform}"
-#  key_name 			= "${var.key_name}"
-#  environment_tag 	= "${var.environment_tag}"
-#  resource_poc_tag 	= "${var.resource_poc_tag}"
-
-#  instance_type 	= "t2.large"
-#  OSDiskSize 		= "200"
-#  DataDiskSize 		= "100"
-#}
-
-## Secondary Linux Bastion
-
-module "bastion_linux" {
+module "bastion_win" {
   source = "../modules/bastion"
   
   vpc_id 			= "${var.ocp_vpc}"
   subnet_id 		= "${var.public_subnet1}"
   
-  bastion_ami_id 	= "${var.bastion_linux_ami_id}"
+  bastion_ami_id 	= "${var.bastion_win_ami_id}"
   
   # This SG allows the bastion to talk to the nodes
   bastion_sg		= "${aws_security_group.bastion_sg.id}"
@@ -152,10 +194,37 @@ module "bastion_linux" {
   environment_tag 	= "${var.environment_tag}"
   resource_poc_tag 	= "${var.resource_poc_tag}"
 
-  instance_type 	= "t2.micro"
-  OSDiskSize 		= "50"
-  DataDiskSize 		= "25"
+  instance_type 	= "t2.medium"
+  OSDiskSize 		= "100"
+  DataDiskSize 		= "50"
+  bastion_number	= "010"
 }
+
+## Secondary Linux Bastion
+
+#module "bastion_linux" {
+#  source = "../modules/bastion"
+#  
+#  vpc_id 			= "${var.ocp_vpc}"
+#  subnet_id 		= "${var.public_subnet1}"
+#  
+#  bastion_ami_id 	= "${var.bastion_linux_ami_id}"
+#  
+#  # This SG allows the bastion to talk to the nodes
+#  bastion_sg		= "${aws_security_group.bastion_sg.id}"
+#  
+#  name_org 			= "${var.name_org}"
+#  name_application 	= "${var.name_application}"
+#  name_platform 	= "${var.name_platform}"
+#  key_name 			= "${var.key_name}"
+#  environment_tag 	= "${var.environment_tag}"
+#  resource_poc_tag 	= "${var.resource_poc_tag}"
+#
+#  instance_type 	= "t2.micro"
+#  OSDiskSize 		= "50"
+#  DataDiskSize 		= "25"
+#  bastion_number	= "011"
+#}
 
 ## Define the Shared security group for the Master nodes
 # Defined here for 3 reasons:
@@ -228,6 +297,7 @@ resource "aws_security_group" "shared_sg" {
         Application = "RedHat OCP Shared SG"
 		ResourcePOC = "${var.resource_poc_tag}"
         Environment = "${upper("${var.environment_tag}")}"
+        "kubernetes.io/cluster/openshift" = "owned"
     }
 }
 
@@ -251,6 +321,7 @@ module "master_cluster" {
   key_name 			= "${var.key_name}"
   environment_tag 	= "${var.environment_tag}"
   resource_poc_tag 	= "${var.resource_poc_tag}"
+  domain_name	    = "${var.domain_name}"
 
   instance_type 	= "t2.large"
   OSDiskSize 		= "100"
@@ -260,7 +331,26 @@ module "master_cluster" {
   third_number 		= "003"
 
   cluster_lb_arn	= "${aws_lb.master_lb.arn}"
+  cluster_lb_cert_arn = "${var.master_lb_cert_arn}"
   cluster_port		= "8443"
+  lb_dns_name		= "${aws_lb.master_lb.dns_name}"
+  lb_hosted_zone_id	= "${var.hosted_zone_id}"
+  lb_cluster_zone_id = "${aws_lb.master_lb.zone_id}"
+  
+  redhat_username 	= "${var.redhat_username}"
+  redhat_password 	= "${var.redhat_password}"
+  redhat_pool_id 	= "${var.redhat_pool_id}"
+}
+
+# Wildcard entry for master cluster
+resource "aws_route53_record" "apps_alias" {
+  zone_id = "${var.hosted_zone_id}"
+  name    = "*.apps.${var.domain_name}"
+  type    = "A"
+  ttl     = "300"
+  records = ["${module.master_cluster.instance1_ip}",
+  				"${module.master_cluster.instance2_ip}",
+  				"${module.master_cluster.instance3_ip}"]
 }
 
 ## Finally, invoke the instance creation module a second time, overriding appropriate parameters
@@ -283,6 +373,7 @@ module "node_cluster" {
   key_name 			= "${var.key_name}"
   environment_tag 	= "${var.environment_tag}"
   resource_poc_tag 	= "${var.resource_poc_tag}"
+  domain_name	    = "${var.domain_name}"
 
   instance_type 	= "t2.large"
   OSDiskSize 		= "100"
@@ -293,4 +384,11 @@ module "node_cluster" {
 
   cluster_lb_arn 	= "${aws_lb.node_lb.arn}"
   cluster_port		= "8080"
+  lb_dns_name		= "${aws_lb.node_lb.dns_name}"
+  lb_hosted_zone_id	= "${var.hosted_zone_id}"
+  lb_cluster_zone_id = "${aws_lb.node_lb.zone_id}"
+    
+  redhat_username 	= "${var.redhat_username}"
+  redhat_password 	= "${var.redhat_password}"
+  redhat_pool_id 	= "${var.redhat_pool_id}"
 }

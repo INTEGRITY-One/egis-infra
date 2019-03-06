@@ -212,6 +212,7 @@ resource "aws_lb" "master_lb" {
   tags = {
     Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-lb")}"
     Environment = "${upper("${var.environment_tag}")}"
+    "kubernetes.io/cluster/openshift" = "owned"
   }
 }
 
@@ -228,5 +229,6 @@ resource "aws_lb" "node_lb" {
   tags = {
     Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-lb")}"
     Environment = "${upper("${var.environment_tag}")}"
+    "kubernetes.io/cluster/openshift" = "owned"
   }
 }

@@ -25,7 +25,7 @@ resource "aws_instance" "bastion" {
     }
 
     tags {
-        Name        = "${var.name_org}${var.name_application}${var.environment_tag}000"
+        Name        = "${var.name_org}${var.name_application}${var.environment_tag}${var.bastion_number}"
         Application = "OCP Bastion"
         ResourcePOC = "${var.resource_poc_tag}"
         Environment = "${upper("${var.environment_tag}")}"
