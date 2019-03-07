@@ -52,6 +52,14 @@ resource "aws_security_group" "master_lb_sg" {
     }
     
     ingress {
+        from_port   = "8080"
+        to_port     = "8080"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "Allow secondary HTTP from external"
+    }
+    
+    ingress {
         from_port   = "443"
         to_port     = "443"
         protocol    = "tcp"
@@ -79,6 +87,7 @@ resource "aws_security_group" "master_lb_sg" {
         Application = "SG for Public-facing Load Balancer"
 		ResourcePOC = "${var.resource_poc_tag}"
         Environment = "${upper("${var.environment_tag}")}"
+        "kubernetes.io/cluster/openshift" = "owned"
     }
 }
 
@@ -91,6 +100,7 @@ resource "aws_lb" "master_lb" {
 					"${var.public_subnet2}",
 					"${var.public_subnet3}"]
 
+  # This is just so Terraform can destroy the LB without user intervention
   enable_deletion_protection = false
 
   tags = {
@@ -120,6 +130,7 @@ resource "aws_lb" "node_lb" {
 					"${var.private_subnet2}",
 					"${var.private_subnet3}"]
 
+  # This is just so Terraform can destroy the LB without user intervention
   enable_deletion_protection = false
 
   tags = {
@@ -176,54 +187,56 @@ resource "aws_security_group" "bastion_sg" {
 
 ## Next, invoke the bastion creation module, overriding appropriate parameters
 
+## Primary (Windows) Bastion
+
 module "bastion_win" {
-  source = "../modules/bastion"
+  source                = "../modules/bastion"
   
-  vpc_id 			= "${var.ocp_vpc}"
-  subnet_id 		= "${var.public_subnet1}"
+  vpc_id                = "${var.ocp_vpc}"
+  subnet_id             = "${var.public_subnet1}"
   
-  bastion_ami_id 	= "${var.bastion_win_ami_id}"
+  bastion_ami_id        = "${var.bastion_win_ami_id}"
   
   # This SG allows the bastion to talk to the nodes
-  bastion_sg		= "${aws_security_group.bastion_sg.id}"
+  bastion_sg            = "${aws_security_group.bastion_sg.id}"
   
-  name_org 			= "${var.name_org}"
-  name_application 	= "${var.name_application}"
-  name_platform 	= "${var.name_platform}"
-  key_name 			= "${var.key_name}"
-  environment_tag 	= "${var.environment_tag}"
-  resource_poc_tag 	= "${var.resource_poc_tag}"
+  name_org              = "${var.name_org}"
+  name_application      = "${var.name_application}"
+  name_platform         = "${var.name_platform}"
+  key_name              = "${var.key_name}"
+  environment_tag       = "${var.environment_tag}"
+  resource_poc_tag      = "${var.resource_poc_tag}"
 
-  instance_type 	= "t2.medium"
-  OSDiskSize 		= "100"
-  DataDiskSize 		= "50"
-  bastion_number	= "010"
+  instance_type         = "t2.medium"
+  OSDiskSize            = "100"
+  DataDiskSize          = "50"
+  bastion_number        = "010"
 }
 
 ## Secondary Linux Bastion
 
 #module "bastion_linux" {
-#  source = "../modules/bastion"
+#  source                = "../modules/bastion"
 #  
-#  vpc_id 			= "${var.ocp_vpc}"
-#  subnet_id 		= "${var.public_subnet1}"
+#  vpc_id                = "${var.ocp_vpc}"
+#  subnet_id             = "${var.public_subnet1}"
 #  
-#  bastion_ami_id 	= "${var.bastion_linux_ami_id}"
+#  bastion_ami_id        = "${var.bastion_linux_ami_id}"
 #  
 #  # This SG allows the bastion to talk to the nodes
-#  bastion_sg		= "${aws_security_group.bastion_sg.id}"
+#  bastion_sg            = "${aws_security_group.bastion_sg.id}"
 #  
-#  name_org 			= "${var.name_org}"
-#  name_application 	= "${var.name_application}"
-#  name_platform 	= "${var.name_platform}"
-#  key_name 			= "${var.key_name}"
-#  environment_tag 	= "${var.environment_tag}"
-#  resource_poc_tag 	= "${var.resource_poc_tag}"
+#  name_org              = "${var.name_org}"
+#  name_application      = "${var.name_application}"
+#  name_platform         = "${var.name_platform}"
+#  key_name              = "${var.key_name}"
+#  environment_tag       = "${var.environment_tag}"
+#  resource_poc_tag      = "${var.resource_poc_tag}"
 #
-#  instance_type 	= "t2.micro"
-#  OSDiskSize 		= "50"
-#  DataDiskSize 		= "25"
-#  bastion_number	= "011"
+#  instance_type         = "t2.micro"
+#  OSDiskSize            = "50"
+#  DataDiskSize          = "25"
+#  bastion_number        = "011"
 #}
 
 ## Define the Shared security group for the Master nodes
@@ -254,14 +267,6 @@ resource "aws_security_group" "shared_sg" {
     }
     
     ingress {
-        from_port   = "8443"
-        to_port     = "8443"
-        protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-        description = "External HTTPS for Admin console"
-    }
-    
-    ingress {
         from_port   = "443"
         to_port     = "443"
         protocol    = "tcp"
@@ -270,11 +275,27 @@ resource "aws_security_group" "shared_sg" {
     }
     
     ingress {
+        from_port   = "8443"
+        to_port     = "8443"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "External HTTPS for Admin console"
+    }
+    
+    ingress {
         from_port   = "80"
         to_port     = "80"
         protocol    = "tcp"
         cidr_blocks = ["0.0.0.0/0"]
         description = "External HTTP for all non-secure routes"
+    }
+    
+    ingress {
+        from_port   = "8080"
+        to_port     = "8080"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "External HTTP for special non-secure routes"
     }
     
     ingress {
@@ -332,7 +353,6 @@ module "master_cluster" {
 
   cluster_lb_arn	= "${aws_lb.master_lb.arn}"
   cluster_lb_cert_arn = "${var.master_lb_cert_arn}"
-  cluster_port		= "8443"
   lb_dns_name		= "${aws_lb.master_lb.dns_name}"
   lb_hosted_zone_id	= "${var.hosted_zone_id}"
   lb_cluster_zone_id = "${aws_lb.master_lb.zone_id}"
@@ -383,7 +403,6 @@ module "node_cluster" {
   third_number 		= "006"
 
   cluster_lb_arn 	= "${aws_lb.node_lb.arn}"
-  cluster_port		= "8080"
   lb_dns_name		= "${aws_lb.node_lb.dns_name}"
   lb_hosted_zone_id	= "${var.hosted_zone_id}"
   lb_cluster_zone_id = "${aws_lb.node_lb.zone_id}"

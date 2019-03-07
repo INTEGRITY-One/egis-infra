@@ -135,12 +135,6 @@ resource "aws_route53_record" "alias1" {
   type    = "A"
   ttl     = "300"
   records = ["${aws_instance.instance_1.private_ip}"]
-
-  #alias {
-  #  name                   = "${var.lb_dns_name}"
-  #  zone_id                = "${var.lb_cluster_zone_id}"
-  #  evaluate_target_health = false
-  #}
 }
 resource "aws_route53_record" "alias2" {
   zone_id = "${var.lb_hosted_zone_id}"
@@ -148,12 +142,6 @@ resource "aws_route53_record" "alias2" {
   type    = "A"
   ttl     = "300"
   records = ["${aws_instance.instance_2.private_ip}"]
-
-  #alias {
-  #  name                   = "${var.lb_dns_name}"
-  #  zone_id                = "${var.lb_cluster_zone_id}"
-  #  evaluate_target_health = false
-  #}
 }
 resource "aws_route53_record" "alias3" {
   zone_id = "${var.lb_hosted_zone_id}"
@@ -161,19 +149,14 @@ resource "aws_route53_record" "alias3" {
   type    = "A"
   ttl     = "300"
   records = ["${aws_instance.instance_3.private_ip}"]
-
-  #alias {
-  #  name                   = "${var.lb_dns_name}"
-  #  zone_id                = "${var.lb_cluster_zone_id}"
-  #  evaluate_target_health = false
-  #}
 }
 
-## Create Custom LB Target Group for this cluster
-resource "aws_lb_target_group" "instance_custom_tg" {
+## Create LB Target Groups for this cluster
+
+resource "aws_lb_target_group" "instance_http_tg" {
     name_prefix = "${var.name_application}-"
-    port = "${var.cluster_port}"
-    protocol = "HTTPS"
+    port = "80"
+    protocol = "HTTP"
     vpc_id = "${var.vpc_id}"
     stickiness {
     	type = "lb_cookie"
@@ -181,10 +164,9 @@ resource "aws_lb_target_group" "instance_custom_tg" {
     }
 }
 
-# Standard HTTP/HTTPS target groups
-resource "aws_lb_target_group" "instance_http_tg" {
+resource "aws_lb_target_group" "instance_http2_tg" {
     name_prefix = "${var.name_application}-"
-    port = "80"
+    port = "8080"
     protocol = "HTTP"
     vpc_id = "${var.vpc_id}"
     stickiness {
@@ -204,24 +186,18 @@ resource "aws_lb_target_group" "instance_https_tg" {
     }
 }
 
+resource "aws_lb_target_group" "instance_https2_tg" {
+    name_prefix = "${var.name_application}-"
+    port = "8443"
+    protocol = "HTTPS"
+    vpc_id = "${var.vpc_id}"
+    stickiness {
+    	type = "lb_cookie"
+    	enabled = "false"
+    }
+}
+
 ## Add new instance to LB Target
-resource "aws_lb_target_group_attachment" "tg_custom_attachment_1" {
-  target_group_arn = "${aws_lb_target_group.instance_custom_tg.arn}"
-  target_id        = "${aws_instance.instance_1.id}"
-  port             = "${var.cluster_port}"
-}
-
-resource "aws_lb_target_group_attachment" "tg_custom_attachment_2" {
-  target_group_arn = "${aws_lb_target_group.instance_custom_tg.arn}"
-  target_id        = "${aws_instance.instance_2.id}"
-  port             = "${var.cluster_port}"
-}
-
-resource "aws_lb_target_group_attachment" "tg_custom_attachment_3" {
-  target_group_arn = "${aws_lb_target_group.instance_custom_tg.arn}"
-  target_id        = "${aws_instance.instance_3.id}"
-  port             = "${var.cluster_port}"
-}
 
 resource "aws_lb_target_group_attachment" "tg_http_attachment_1" {
   target_group_arn = "${aws_lb_target_group.instance_http_tg.arn}"
@@ -239,6 +215,24 @@ resource "aws_lb_target_group_attachment" "tg_http_attachment_3" {
   target_group_arn = "${aws_lb_target_group.instance_http_tg.arn}"
   target_id        = "${aws_instance.instance_3.id}"
   port             = "80"
+}
+
+resource "aws_lb_target_group_attachment" "tg_http2_attachment_1" {
+  target_group_arn = "${aws_lb_target_group.instance_http2_tg.arn}"
+  target_id        = "${aws_instance.instance_1.id}"
+  port             = "8080"
+}
+
+resource "aws_lb_target_group_attachment" "tg_http2_attachment_2" {
+  target_group_arn = "${aws_lb_target_group.instance_http2_tg.arn}"
+  target_id        = "${aws_instance.instance_2.id}"
+  port             = "8080"
+}
+
+resource "aws_lb_target_group_attachment" "tg_http2_attachment_3" {
+  target_group_arn = "${aws_lb_target_group.instance_http2_tg.arn}"
+  target_id        = "${aws_instance.instance_3.id}"
+  port             = "8080"
 }
 
 resource "aws_lb_target_group_attachment" "tg_https_attachment_1" {
@@ -259,24 +253,29 @@ resource "aws_lb_target_group_attachment" "tg_https_attachment_3" {
   port             = "443"
 }
 
-## Add new listeners to LB
-resource "aws_lb_listener" "cluster_custom_lb_listener" {
-    load_balancer_arn = "${var.cluster_lb_arn}"
-    port = "${var.cluster_port}"
-    protocol = "HTTPS"
-    ssl_policy        = "ELBSecurityPolicy-2016-08"
-    certificate_arn   = "${var.cluster_lb_cert_arn}"
- 
-    default_action {
-        target_group_arn = "${aws_lb_target_group.instance_custom_tg.arn}"
-        type = "forward"
-    }
+resource "aws_lb_target_group_attachment" "tg_https2_attachment_1" {
+  target_group_arn = "${aws_lb_target_group.instance_https2_tg.arn}"
+  target_id        = "${aws_instance.instance_1.id}"
+  port             = "8443"
 }
 
+resource "aws_lb_target_group_attachment" "tg_https2_attachment_2" {
+  target_group_arn = "${aws_lb_target_group.instance_https2_tg.arn}"
+  target_id        = "${aws_instance.instance_2.id}"
+  port             = "8443"
+}
+
+resource "aws_lb_target_group_attachment" "tg_https2_attachment_3" {
+  target_group_arn = "${aws_lb_target_group.instance_https2_tg.arn}"
+  target_id        = "${aws_instance.instance_3.id}"
+  port             = "8443"
+}
+
+## Add new listeners to LB
 resource "aws_lb_listener" "cluster_http_lb_listener" {
-    load_balancer_arn = "${var.cluster_lb_arn}"
-    port = "80"
-    protocol = "HTTP"
+    load_balancer_arn   = "${var.cluster_lb_arn}"
+    port                = "80"
+    protocol            = "HTTP"
  
     default_action {
         type = "forward"
@@ -284,15 +283,39 @@ resource "aws_lb_listener" "cluster_http_lb_listener" {
     }
 }
 
+resource "aws_lb_listener" "cluster_http2_lb_listener" {
+    load_balancer_arn   = "${var.cluster_lb_arn}"
+    port                = "8080"
+    protocol            = "HTTP"
+ 
+    default_action {
+        type = "forward"
+        target_group_arn = "${aws_lb_target_group.instance_http2_tg.arn}"
+    }
+}
+
 resource "aws_lb_listener" "cluster_https_lb_listener" {
-    load_balancer_arn = "${var.cluster_lb_arn}"
-    port              = "443"
-    protocol          = "HTTPS"
-    ssl_policy        = "ELBSecurityPolicy-2016-08"
-    certificate_arn   = "${var.cluster_lb_cert_arn}"
+    load_balancer_arn   = "${var.cluster_lb_arn}"
+    port                = "443"
+    protocol            = "HTTPS"
+    ssl_policy          = "ELBSecurityPolicy-2016-08"
+    certificate_arn     = "${var.cluster_lb_cert_arn}"
 
     default_action {
         type = "forward"
         target_group_arn = "${aws_lb_target_group.instance_https_tg.arn}"
+    }
+}
+
+resource "aws_lb_listener" "cluster_https2_lb_listener" {
+    load_balancer_arn   = "${var.cluster_lb_arn}"
+    port                = "8443"
+    protocol            = "HTTPS"
+    ssl_policy          = "ELBSecurityPolicy-2016-08"
+    certificate_arn     = "${var.cluster_lb_cert_arn}"
+ 
+    default_action {
+        type = "forward"
+        target_group_arn = "${aws_lb_target_group.instance_https2_tg.arn}"
     }
 }

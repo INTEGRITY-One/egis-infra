@@ -62,7 +62,6 @@ variable "name_application" {}
 variable "name_platform" {}
 
 variable "cluster_lb_arn" {}
-variable "cluster_port" {}
 variable "domain_name" {}
 
 #Cert to use for SSL
