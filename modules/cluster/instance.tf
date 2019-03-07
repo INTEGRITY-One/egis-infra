@@ -37,6 +37,7 @@ resource "aws_instance" "instance_1" {
 data "template_file" "init1" {
   template = "${file("${path.module}/files/userdata.tpl")}"
   vars {
+    #orig_hostname = "${aws_instance.instance_1.private_dns}"
     hostname = "${var.name_org}${var.name_application}${var.environment_tag}${var.first_number}.${var.domain_name}"
     username = "${var.redhat_username}"
     password = "${var.redhat_password}"
@@ -79,6 +80,7 @@ resource "aws_instance" "instance_2" {
 data "template_file" "init2" {
   template = "${file("${path.module}/files/userdata.tpl")}"
   vars {
+    #orig_hostname = "${aws_instance.instance_2.private_dns}"
     hostname = "${var.name_org}${var.name_application}${var.environment_tag}${var.second_number}.${var.domain_name}"
     username = "${var.redhat_username}"
     password = "${var.redhat_password}"
@@ -121,6 +123,7 @@ resource "aws_instance" "instance_3" {
 data "template_file" "init3" {
   template = "${file("${path.module}/files/userdata.tpl")}"
   vars {
+    #orig_hostname = "${aws_instance.instance_3.private_dns}"
     hostname = "${var.name_org}${var.name_application}${var.environment_tag}${var.third_number}.${var.domain_name}"
     username = "${var.redhat_username}"
     password = "${var.redhat_password}"

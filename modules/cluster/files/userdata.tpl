@@ -12,4 +12,5 @@ subscription-manager repos \
 yum -y install wget git net-tools bind-utils yum-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct
 yum -y install docker-1.13.1
 yum -y update
+#hostnamectl set-hostname "orig_hostname"
 reboot

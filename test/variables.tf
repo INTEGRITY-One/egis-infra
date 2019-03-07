@@ -55,15 +55,12 @@ variable "aws_eip3" {
 #Default AMI to use for Node instances
 variable "node_ami_id" {
    default = "ami-0b500ef59d8335eee" # RHEL 7.6 baseline (in US-East-2)
-   #default = "ami-0376bbf9be9eac670" # RHEL 7.5 baseline?
-   #default = "ami-06e231e471a121b03" # Custom RHEL 7.5 [pre-Prereqs]
-   #default = "ami-0ec827f0337bb4999" # Custom RHEL 7.6 [pre-Prereqs]
 }
 
 #Default AMI to use for the Windows Bastion server
 variable "bastion_win_ami_id" {
    #default = "ami-0eb1e0a0c9f3f85c7" # Win2k19 baseline (in US-East-2)
-   default = "ami-0cba06d56e638e353" # Custom Win2k12 bastion (in US-East-2)
+   default = "ami-046e068c9168bb2c8" # Custom Win2k12 bastion (in US-East-2)
 }
 
 #Default AMI to use for the Linux Bastion server
