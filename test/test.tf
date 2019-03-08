@@ -122,6 +122,18 @@ resource "aws_route53_record" "master-alias" {
   }
 }
 
+resource "aws_route53_record" "wildcard-alias" {
+  zone_id = "${var.hosted_zone_id}"
+  name    = "*.apps.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = "${aws_lb.master_lb.dns_name}"
+    zone_id                = "${aws_lb.master_lb.zone_id}"
+    evaluate_target_health = true
+  }
+}
+
 resource "aws_lb" "node_lb" {
   name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-alb")}"
   internal           = true
@@ -363,15 +375,16 @@ module "master_cluster" {
 }
 
 # Wildcard entry for master cluster
-resource "aws_route53_record" "apps_alias" {
-  zone_id = "${var.hosted_zone_id}"
-  name    = "*.apps.${var.domain_name}"
-  type    = "A"
-  ttl     = "300"
-  records = ["${module.master_cluster.instance1_ip}",
-  				"${module.master_cluster.instance2_ip}",
-  				"${module.master_cluster.instance3_ip}"]
-}
+# NOTE: This would only work internally
+#resource "aws_route53_record" "apps_alias" {
+#  zone_id = "${var.hosted_zone_id}"
+#  name    = "*.apps.${var.domain_name}"
+#  type    = "A"
+#  ttl     = "300"
+#  records = ["${module.master_cluster.instance1_ip}",
+#  				"${module.master_cluster.instance2_ip}",
+#  				"${module.master_cluster.instance3_ip}"]
+#}
 
 ## Finally, invoke the instance creation module a second time, overriding appropriate parameters
 
