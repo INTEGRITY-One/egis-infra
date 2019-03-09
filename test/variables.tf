@@ -1,27 +1,27 @@
-# VPC and Subnet info
-variable "ocp_vpc"{
-  default = "vpc-00f6959500333fdc9"
-}
+# Use these to specify the VPC and Subnet info, if leveraging existing VPC
+#variable "ocp_vpc"{
+#  default = "vpc-00f6959500333fdc9"
+#}
 
-variable "public_subnet1"{
-  default = "subnet-0aea7c173beede085"
-}
-variable "public_subnet2"{
-  default = "subnet-05f358c00841e0a69"
-}
-variable "public_subnet3"{
-  default = "subnet-07b0656f7901dc340"
-}
+#variable "public_subnet1"{
+#  default = "subnet-0aea7c173beede085"
+#}
+#variable "public_subnet2"{
+#  default = "subnet-05f358c00841e0a69"
+#}
+#variable "public_subnet3"{
+#  default = "subnet-07b0656f7901dc340"
+#}
 
-variable "private_subnet1"{
-  default = "subnet-0680964eb6f30110e"
-}
-variable "private_subnet2"{
-  default = "subnet-04c52adba10c35006"
-}
-variable "private_subnet3"{
-  default = "subnet-01908654c4a064790"
-}
+#variable "private_subnet1"{
+#  default = "subnet-0680964eb6f30110e"
+#}
+#variable "private_subnet2"{
+#  default = "subnet-04c52adba10c35006"
+#}
+#variable "private_subnet3"{
+#  default = "subnet-01908654c4a064790"
+#}
 
 #Environment-specific variables
 

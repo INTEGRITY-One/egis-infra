@@ -30,6 +30,15 @@ output "master_lb_arn"{
 output "master_lb_dnsname"{
   value = "${aws_lb.master_lb.dns_name}"
 }
+output "master_lb_zone"{
+  value = "${aws_lb.master_lb.zone_id}"
+}
 output "node_lb_arn"{
   value = "${aws_lb.node_lb.arn}"
+}
+output "node_lb_dnsname"{
+  value = "${aws_lb.node_lb.dns_name}"
+}
+output "node_lb_zone"{
+  value = "${aws_lb.node_lb.zone_id}"
 }

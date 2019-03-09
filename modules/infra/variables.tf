@@ -22,3 +22,7 @@ variable "name_org" {}
 
 #Application name - used for dynamic name generation, e.g. hostname
 variable "name_application" {}
+
+#New variables for setting up LB and Route 53
+variable "hosted_zone_id" {}
+variable "domain_name" {}

@@ -13,151 +13,38 @@ terraform {
   }
 }
 
-## For TST, we leverage existing SDN for the OCP cluster
+## Comment this out to leverage existing SDN for the OCP cluster
 
-#module "ocp-sdn" {
-#  source = "../modules/infra"
-#  
+module "ocp-sdn" {
+  source = "../modules/infra"
+  
   # Region and Availability Zones
-#  aws_region		= "${var.aws_region}"
-#  aws_az1 			= "${var.aws_az1}"
-#  aws_az2 			= "${var.aws_az2}"
-#  aws_az3 			= "${var.aws_az3}"
+  aws_region		 = "${var.aws_region}"
+  aws_az1 			 = "${var.aws_az1}"
+  aws_az2 			 = "${var.aws_az2}"
+  aws_az3 			 = "${var.aws_az3}"
   
   # Environment-specific Elastic IP Allocation IDs
-#  eipalloc_id1 		= "${var.aws_eip1}"
-#  eipalloc_id2 		= "${var.aws_eip2}"
-#  eipalloc_id3 		= "${var.aws_eip3}"
+  eipalloc_id1 		 = "${var.aws_eip1}"
+  eipalloc_id2 		 = "${var.aws_eip2}"
+  eipalloc_id3 		 = "${var.aws_eip3}"
   
-#  name_org 			= "${var.name_org}"
-#  name_application 	= "${var.name_application}"
-#  environment_tag 	= "${var.environment_tag}"
-#  resource_poc_tag 	= "${var.resource_poc_tag}"
-#}
-
-## Instead of creating the entire SDN, we create just the LBs here:
-
-## Define the Custom SG for the Master LB
-
-resource "aws_security_group" "master_lb_sg" {
-    name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-lb-sg")}"
-    vpc_id = "${var.ocp_vpc}"
-
-    ingress {
-        from_port   = "80"
-        to_port     = "80"
-        protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-        description = "Allow HTTP from external"
-    }
-    
-    ingress {
-        from_port   = "8080"
-        to_port     = "8080"
-        protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-        description = "Allow secondary HTTP from external"
-    }
-    
-    ingress {
-        from_port   = "443"
-        to_port     = "443"
-        protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-        description = "Allow HTTPS from external"
-    }
-    
-    ingress {
-        from_port   = "8443"
-        to_port     = "8443"
-        protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-        description = "Allow HTTPS (admin) from external"
-    }
-    
-    egress {
-        from_port   = 0
-        to_port     = 0
-        protocol    = "-1"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
-
-    tags {
-        name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-lb-sg")}"
-        Application = "SG for Public-facing Load Balancer"
-		ResourcePOC = "${var.resource_poc_tag}"
-        Environment = "${upper("${var.environment_tag}")}"
-        "kubernetes.io/cluster/openshift" = "owned"
-    }
+  name_org 			 = "${var.name_org}"
+  name_application 	 = "${var.name_application}"
+  environment_tag 	 = "${var.environment_tag}"
+  resource_poc_tag 	 = "${var.resource_poc_tag}"
+  
+  hosted_zone_id     = "${var.hosted_zone_id}"
+  domain_name        = "${var.domain_name}"
 }
 
-resource "aws_lb" "master_lb" {
-  name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-alb")}"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = ["${aws_security_group.master_lb_sg.id}"]
-  subnets            = ["${var.public_subnet1}",
-					"${var.public_subnet2}",
-					"${var.public_subnet3}"]
+## If leveraging existing SDN, just creat the LBs here instead of creating the entire SDN:
 
-  # This is just so Terraform can destroy the LB without user intervention
-  enable_deletion_protection = false
-
-  tags = {
-    Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-alb")}"
-    Environment = "${upper("${var.environment_tag}")}"
-    "kubernetes.io/cluster/openshift" = "owned"
-  }
-}
-
-resource "aws_route53_record" "master-alias" {
-  zone_id = "${var.hosted_zone_id}"
-  name    = "${var.name_application}-demo.${var.domain_name}"
-  type    = "A"
-
-  alias {
-    name                   = "${aws_lb.master_lb.dns_name}"
-    zone_id                = "${aws_lb.master_lb.zone_id}"
-    evaluate_target_health = true
-  }
-}
-
-resource "aws_route53_record" "wildcard-alias" {
-  zone_id = "${var.hosted_zone_id}"
-  name    = "*.apps.${var.domain_name}"
-  type    = "A"
-
-  alias {
-    name                   = "${aws_lb.master_lb.dns_name}"
-    zone_id                = "${aws_lb.master_lb.zone_id}"
-    evaluate_target_health = true
-  }
-}
-
-resource "aws_lb" "node_lb" {
-  name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-alb")}"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = ["${aws_security_group.master_lb_sg.id}"]
-  subnets            = ["${var.private_subnet1}",
-					"${var.private_subnet2}",
-					"${var.private_subnet3}"]
-
-  # This is just so Terraform can destroy the LB without user intervention
-  enable_deletion_protection = false
-
-  tags = {
-    Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-alb")}"
-    Environment = "${upper("${var.environment_tag}")}"
-    "kubernetes.io/cluster/openshift" = "owned"
-  }
-}
-
-## Define the Custom SG for the Bastion Host
+## Define the Custom SG for the Bastion Host(s)
 
 resource "aws_security_group" "bastion_sg" {
     name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-bastion-sg")}"
-    vpc_id = "${var.ocp_vpc}"
+    vpc_id = "${module.ocp-sdn.ocp_vpc}"
 
     ingress {
         from_port   = "22"
@@ -205,8 +92,8 @@ resource "aws_security_group" "bastion_sg" {
 module "bastion_win" {
   source                = "../modules/bastion"
   
-  vpc_id                = "${var.ocp_vpc}"
-  subnet_id             = "${var.public_subnet1}"
+  vpc_id                = "${module.ocp-sdn.ocp_vpc}"
+  subnet_id             = "${module.ocp-sdn.public_subnet1}"
   
   bastion_ami_id        = "${var.bastion_win_ami_id}"
   
@@ -231,8 +118,8 @@ module "bastion_win" {
 #module "bastion_linux" {
 #  source                = "../modules/bastion"
 #  
-#  vpc_id                = "${var.ocp_vpc}"
-#  subnet_id             = "${var.public_subnet1}"
+#  vpc_id                = "${module.ocp-sdn.ocp_vpc}"
+#  subnet_id             = "${module.ocp-sdn.public_subnet1}"
 #  
 #  bastion_ami_id        = "${var.bastion_linux_ami_id}"
 #  
@@ -261,7 +148,7 @@ module "bastion_win" {
 
 resource "aws_security_group" "shared_sg" {
     name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-shared-sg")}"
-    vpc_id = "${var.ocp_vpc}"
+    vpc_id = "${module.ocp-sdn.ocp_vpc}"
 
     ingress {
         from_port   = "0"
@@ -340,10 +227,10 @@ resource "aws_security_group" "shared_sg" {
 module "master_cluster" {
   source = "../modules/cluster"
   
-  vpc_id 			= "${var.ocp_vpc}"
-  subnet_id1 		= "${var.private_subnet1}"
-  subnet_id2 		= "${var.private_subnet2}"
-  subnet_id3 		= "${var.private_subnet3}"
+  vpc_id 			= "${module.ocp-sdn.ocp_vpc}"
+  subnet_id1 		= "${module.ocp-sdn.private_subnet1}"
+  subnet_id2 		= "${module.ocp-sdn.private_subnet2}"
+  subnet_id3 		= "${module.ocp-sdn.private_subnet3}"
   
   node_ami_id 		= "${var.node_ami_id}"
   
@@ -358,17 +245,17 @@ module "master_cluster" {
   domain_name	    = "${var.domain_name}"
 
   instance_type 	= "t2.large"
-  OSDiskSize 		= "100"
-  DataDiskSize 		= "50"
+  OSDiskSize 		= "50"
+  DataDiskSize 		= "100"
   first_number 		= "001"
   second_number 	= "002"
   third_number 		= "003"
 
-  cluster_lb_arn	= "${aws_lb.master_lb.arn}"
+  cluster_lb_arn	= "${module.ocp-sdn.master_lb_arn}"
   cluster_lb_cert_arn = "${var.master_lb_cert_arn}"
-  lb_dns_name		= "${aws_lb.master_lb.dns_name}"
+  lb_dns_name		= "${module.ocp-sdn.master_lb_dnsname}"
   lb_hosted_zone_id	= "${var.hosted_zone_id}"
-  lb_cluster_zone_id = "${aws_lb.master_lb.zone_id}"
+  lb_cluster_zone_id = "${module.ocp-sdn.master_lb_zone}"
   
   redhat_username 	= "${var.redhat_username}"
   redhat_password 	= "${var.redhat_password}"
@@ -392,10 +279,10 @@ module "master_cluster" {
 module "node_cluster" {
   source = "../modules/cluster"
   
-  vpc_id 			= "${var.ocp_vpc}"
-  subnet_id1 		= "${var.private_subnet1}"
-  subnet_id2 		= "${var.private_subnet2}"
-  subnet_id3 		= "${var.private_subnet3}"
+  vpc_id 			= "${module.ocp-sdn.ocp_vpc}"
+  subnet_id1 		= "${module.ocp-sdn.private_subnet1}"
+  subnet_id2 		= "${module.ocp-sdn.private_subnet2}"
+  subnet_id3 		= "${module.ocp-sdn.private_subnet3}"
   
   node_ami_id 		= "${var.node_ami_id}"
   
@@ -410,16 +297,16 @@ module "node_cluster" {
   domain_name	    = "${var.domain_name}"
 
   instance_type 	= "t2.large"
-  OSDiskSize 		= "100"
-  DataDiskSize 		= "50"
+  OSDiskSize 		= "50"
+  DataDiskSize 		= "100"
   first_number 		= "004"
   second_number 	= "005"
   third_number 		= "006"
 
-  cluster_lb_arn 	= "${aws_lb.node_lb.arn}"
-  lb_dns_name		= "${aws_lb.node_lb.dns_name}"
+  cluster_lb_arn	= "${module.ocp-sdn.node_lb_arn}"
+  lb_dns_name		= "${module.ocp-sdn.node_lb_dnsname}"
   lb_hosted_zone_id	= "${var.hosted_zone_id}"
-  lb_cluster_zone_id = "${aws_lb.node_lb.zone_id}"
+  lb_cluster_zone_id = "${module.ocp-sdn.node_lb_zone}"
     
   redhat_username 	= "${var.redhat_username}"
   redhat_password 	= "${var.redhat_password}"

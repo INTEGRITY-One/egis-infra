@@ -34,7 +34,7 @@ resource "aws_subnet" "public_subnet1" {
   availability_zone = "${var.aws_az1}"
 
   tags = {
-    Name 			= "Public subnet 1"
+    Name 			= "Public Subnet 1"
   }
 }
 
@@ -53,7 +53,7 @@ resource "aws_subnet" "public_subnet2" {
   availability_zone = "${var.aws_az2}"
 
   tags = {
-    Name 			= "Public subnet 2"
+    Name 			= "Public Subnet 2"
   }
 }
 
@@ -72,7 +72,7 @@ resource "aws_subnet" "public_subnet3" {
   availability_zone = "${var.aws_az3}"
 
   tags = {
-    Name 			= "Public subnet 3"
+    Name 			= "Public Subnet 3"
   }
 }
 
@@ -121,7 +121,7 @@ resource "aws_subnet" "private_subnet1" {
   availability_zone 	= "${var.aws_az1}"
 
   tags = {
-    Name 				= "Private subnet 1"
+    Name 				= "Private Subnet 1"
   }
 }
 
@@ -131,7 +131,7 @@ resource "aws_subnet" "private_subnet2" {
   availability_zone 	= "${var.aws_az2}"
 
   tags = {
-    Name 				= "Private subnet 2"
+    Name 				= "Private Subnet 2"
   }
 }
 
@@ -141,7 +141,7 @@ resource "aws_subnet" "private_subnet3" {
   availability_zone 	= "${var.aws_az3}"
 
   tags = {
-    Name 				= "Private subnet 3"
+    Name 				= "Private Subnet 3"
   }
 }
 
@@ -154,7 +154,7 @@ resource "aws_route_table" "ocp_private1_rt" {
   }
 
   tags = {
-    Name = "Route Table for Private subnet 1"
+    Name = "Route Table for Private Subnet 1"
   }
 }
 
@@ -172,7 +172,7 @@ resource "aws_route_table" "ocp_private2_rt" {
   }
 
   tags = {
-    Name = "Route Table for Private subnet 2"
+    Name = "Route Table for Private Subnet 2"
   }
 }
 
@@ -190,7 +190,7 @@ resource "aws_route_table" "ocp_private3_rt" {
   }
 
   tags = {
-    Name = "Route Table for Private subnet 3"
+    Name = "Route Table for Private Subnet 3"
   }
 }
 
@@ -199,35 +199,117 @@ resource "aws_route_table_association" "private_subnet3_rt_assoc" {
   route_table_id = "${aws_route_table.ocp_private3_rt.id}"
 }
 
+## Define the Custom SG for the Master LB
+
+resource "aws_security_group" "master_lb_sg" {
+    name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-lb-sg")}"
+    vpc_id = "${aws_vpc.ocp_vpc.id}"
+
+    ingress {
+        from_port   = "80"
+        to_port     = "80"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "Allow HTTP from external"
+    }
+    
+    ingress {
+        from_port   = "8080"
+        to_port     = "8080"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "Allow secondary HTTP from external"
+    }
+    
+    ingress {
+        from_port   = "443"
+        to_port     = "443"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "Allow HTTPS from external"
+    }
+    
+    ingress {
+        from_port   = "8443"
+        to_port     = "8443"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "Allow HTTPS (admin) from external"
+    }
+    
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    tags {
+        name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-lb-sg")}"
+        Application = "SG for Public-facing Load Balancer"
+		ResourcePOC = "${var.resource_poc_tag}"
+        Environment = "${upper("${var.environment_tag}")}"
+        "kubernetes.io/cluster/openshift" = "owned"
+    }
+}
+
 resource "aws_lb" "master_lb" {
-  name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-lb")}"
+  name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-alb")}"
   internal           = false
-  load_balancer_type = "network"
+  load_balancer_type = "application"
+  security_groups    = ["${aws_security_group.master_lb_sg.id}"]
   subnets            = ["${aws_subnet.public_subnet1.id}",
 					"${aws_subnet.public_subnet2.id}",
 					"${aws_subnet.public_subnet3.id}"]
 
+  # This is just so Terraform can destroy the LB without user intervention
   enable_deletion_protection = false
 
   tags = {
-    Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-lb")}"
+    Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-alb")}"
     Environment = "${upper("${var.environment_tag}")}"
     "kubernetes.io/cluster/openshift" = "owned"
   }
 }
 
+resource "aws_route53_record" "master-alias" {
+  zone_id = "${var.hosted_zone_id}"
+  name    = "${var.name_application}-demo.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = "${aws_lb.master_lb.dns_name}"
+    zone_id                = "${aws_lb.master_lb.zone_id}"
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "wildcard-alias" {
+  zone_id = "${var.hosted_zone_id}"
+  name    = "*.apps.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = "${aws_lb.master_lb.dns_name}"
+    zone_id                = "${aws_lb.master_lb.zone_id}"
+    evaluate_target_health = true
+  }
+}
+
 resource "aws_lb" "node_lb" {
-  name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-lb")}"
-  internal           = true
-  load_balancer_type = "network"
+  name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-alb")}"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = ["${aws_security_group.master_lb_sg.id}"]
   subnets            = ["${aws_subnet.private_subnet1.id}",
 					"${aws_subnet.private_subnet2.id}",
 					"${aws_subnet.private_subnet3.id}"]
 
+  # This is just so Terraform can destroy the LB without user intervention
   enable_deletion_protection = false
 
   tags = {
-    Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-lb")}"
+    Name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-alb")}"
     Environment = "${upper("${var.environment_tag}")}"
     "kubernetes.io/cluster/openshift" = "owned"
   }
