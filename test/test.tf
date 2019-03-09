@@ -136,8 +136,9 @@ resource "aws_route53_record" "wildcard-alias" {
 
 resource "aws_lb" "node_lb" {
   name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-alb")}"
-  internal           = true
+  internal           = false
   load_balancer_type = "application"
+  security_groups    = ["${aws_security_group.master_lb_sg.id}"]
   subnets            = ["${var.private_subnet1}",
 					"${var.private_subnet2}",
 					"${var.private_subnet3}"]
