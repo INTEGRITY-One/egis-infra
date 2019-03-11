@@ -1,7 +1,7 @@
 ## Sets up the SDN for the OCP cluster
 
 resource "aws_vpc_dhcp_options" "ocp_vpc_dhcp" {
-  domain_name       = "${var.aws_region}.compute.internal"
+  domain_name       = "${var.aws_region}.compute.internal, ${var.domain_name}"
   domain_name_servers = ["AmazonProvidedDNS"]
 }
 
@@ -199,9 +199,9 @@ resource "aws_route_table_association" "private_subnet3_rt_assoc" {
   route_table_id = "${aws_route_table.ocp_private3_rt.id}"
 }
 
-## Define the Custom SG for the Master LB
+## Define the Custom SG for the load balancers
 
-resource "aws_security_group" "master_lb_sg" {
+resource "aws_security_group" "lb_sg" {
     name = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-lb-sg")}"
     vpc_id = "${aws_vpc.ocp_vpc.id}"
 
@@ -237,6 +237,14 @@ resource "aws_security_group" "master_lb_sg" {
         description = "Allow HTTPS (admin) from external"
     }
     
+    ingress {
+        from_port   = "8" # Echo Request (Ping)
+        to_port     = "-1" # N/A
+        protocol    = "icmp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "Allow Ping from all"
+    }
+    
     egress {
         from_port   = 0
         to_port     = 0
@@ -257,7 +265,7 @@ resource "aws_lb" "master_lb" {
   name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-master-alb")}"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = ["${aws_security_group.master_lb_sg.id}"]
+  security_groups    = ["${aws_security_group.lb_sg.id}"]
   subnets            = ["${aws_subnet.public_subnet1.id}",
 					"${aws_subnet.public_subnet2.id}",
 					"${aws_subnet.public_subnet3.id}"]
@@ -284,26 +292,14 @@ resource "aws_route53_record" "master-alias" {
   }
 }
 
-resource "aws_route53_record" "wildcard-alias" {
-  zone_id = "${var.hosted_zone_id}"
-  name    = "*.apps.${var.domain_name}"
-  type    = "A"
-
-  alias {
-    name                   = "${aws_lb.master_lb.dns_name}"
-    zone_id                = "${aws_lb.master_lb.zone_id}"
-    evaluate_target_health = true
-  }
-}
-
 resource "aws_lb" "node_lb" {
   name               = "${lower("${var.name_org}-${var.name_application}-${var.environment_tag}-node-alb")}"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = ["${aws_security_group.master_lb_sg.id}"]
-  subnets            = ["${aws_subnet.private_subnet1.id}",
-					"${aws_subnet.private_subnet2.id}",
-					"${aws_subnet.private_subnet3.id}"]
+  security_groups    = ["${aws_security_group.lb_sg.id}"]
+  subnets            = ["${aws_subnet.public_subnet1.id}",
+					"${aws_subnet.public_subnet2.id}",
+					"${aws_subnet.public_subnet3.id}"]
 
   # This is just so Terraform can destroy the LB without user intervention
   enable_deletion_protection = false
@@ -313,4 +309,27 @@ resource "aws_lb" "node_lb" {
     Environment = "${upper("${var.environment_tag}")}"
     "kubernetes.io/cluster/openshift" = "owned"
   }
+}
+
+resource "aws_route53_record" "wildcard-alias" {
+  zone_id = "${var.hosted_zone_id}"
+  name    = "*.apps.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = "${aws_lb.node_lb.dns_name}"
+    zone_id                = "${aws_lb.node_lb.zone_id}"
+    evaluate_target_health = true
+  }
+}
+
+## Allow nodes to interact with S3 buckets
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id                   = "${aws_vpc.ocp_vpc.id}"
+  service_name             = "com.amazonaws.${var.aws_region}.s3"
+  vpc_endpoint_type        = "Gateway"
+
+  route_table_ids          = ["${aws_route_table.ocp_private1_rt.id}",
+		                      "${aws_route_table.ocp_private2_rt.id}",
+		                      "${aws_route_table.ocp_private3_rt.id}"]
 }

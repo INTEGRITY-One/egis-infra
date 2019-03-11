@@ -60,7 +60,7 @@ variable "node_ami_id" {
 #Default AMI to use for the Windows Bastion server
 variable "bastion_win_ami_id" {
    #default = "ami-0eb1e0a0c9f3f85c7" # Win2k19 baseline (in US-East-2)
-   default = "ami-046e068c9168bb2c8" # Custom Win2k12 bastion (in US-East-2)
+   default = "ami-07fae473bdfd9d5cf" # Custom Win2k12 bastion (in US-East-2)
 }
 
 #Default AMI to use for the Linux Bastion server
